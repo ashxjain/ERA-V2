@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.init as init
 from torchvision import datasets, transforms
 from enum import Enum
+import matplotlib.pyplot as plt
 
 class DatasetName(Enum):
     CIFAR10 = 1
