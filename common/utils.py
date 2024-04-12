@@ -1,7 +1,4 @@
-'''Some helper functions for PyTorch, including:
-    - get_mean_and_std: calculate the mean and std value of dataset.
-    - msr_init: net parameter initialization.
-    - progress_bar: progress bar mimic xlua.progress.
+'''Some helper functions for PyTorch
 '''
 import os
 import sys
@@ -34,21 +31,20 @@ def load_transformed_dataset(dataset_name, batch_size):
 
         trainset = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
-        trainloader = torch.utils.data.DataLoader(
+        train_loader = torch.utils.data.DataLoader(
             trainset, batch_size=batch_size, shuffle=True, num_workers=2)
 
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
-        testloader = torch.utils.data.DataLoader(
+        test_loader = torch.utils.data.DataLoader(
             testset, batch_size=batch_size, shuffle=False, num_workers=2)
 
         classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
 
-        return trainloader, testloader, classes
+        return train_loader, test_loader, classes
 
     raise ValueError("Invalid dataset name: Only 'CIFAR10' is supported for now")
-
 
 def get_mean_and_std(dataset):
     '''Compute the mean and std value of dataset.'''
@@ -79,81 +75,27 @@ def init_params(net):
             if m.bias:
                 init.constant(m.bias, 0)
 
+# Function to plot training metrics (loss and accuracy)
+def plot_train_metrics(train_losses, train_acc, test_losses, test_acc):
+    fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+    axs[0, 0].plot(train_losses)
+    axs[0, 0].set_title("Training Loss")
+    axs[1, 0].plot(train_acc)
+    axs[1, 0].set_title("Training Accuracy")
+    axs[0, 1].plot(test_losses)
+    axs[0, 1].set_title("Test Loss")
+    axs[1, 1].plot(test_acc)
+    axs[1, 1].set_title("Test Accuracy")
 
-TOTAL_BAR_LENGTH = 65.
-last_time = time.time()
-begin_time = last_time
-def progress_bar(current, total, msg=None):
-    global last_time, begin_time
-    if current == 0:
-        begin_time = time.time()  # Reset for new bar.
+# Function to plot a sample of data from the data loader
+def plot_sample_data(data_loader):
+    batch_data, batch_label = next(iter(data_loader))
+    fig = plt.figure()
 
-    cur_len = int(TOTAL_BAR_LENGTH*current/total)
-    rest_len = int(TOTAL_BAR_LENGTH - cur_len) - 1
-
-    sys.stdout.write(' [')
-    for i in range(cur_len):
-        sys.stdout.write('=')
-    sys.stdout.write('>')
-    for i in range(rest_len):
-        sys.stdout.write('.')
-    sys.stdout.write(']')
-
-    cur_time = time.time()
-    step_time = cur_time - last_time
-    last_time = cur_time
-    tot_time = cur_time - begin_time
-
-    L = []
-    L.append('  Step: %s' % format_time(step_time))
-    L.append(' | Tot: %s' % format_time(tot_time))
-    if msg:
-        L.append(' | ' + msg)
-
-    msg = ''.join(L)
-    sys.stdout.write(msg)
-    for i in range(term_width-int(TOTAL_BAR_LENGTH)-len(msg)-3):
-        sys.stdout.write(' ')
-
-    # Go back to the center of the bar.
-    for i in range(term_width-int(TOTAL_BAR_LENGTH/2)+2):
-        sys.stdout.write('\b')
-    sys.stdout.write(' %d/%d ' % (current+1, total))
-
-    if current < total-1:
-        sys.stdout.write('\r')
-    else:
-        sys.stdout.write('\n')
-    sys.stdout.flush()
-
-def format_time(seconds):
-    days = int(seconds / 3600/24)
-    seconds = seconds - days*3600*24
-    hours = int(seconds / 3600)
-    seconds = seconds - hours*3600
-    minutes = int(seconds / 60)
-    seconds = seconds - minutes*60
-    secondsf = int(seconds)
-    seconds = seconds - secondsf
-    millis = int(seconds*1000)
-
-    f = ''
-    i = 1
-    if days > 0:
-        f += str(days) + 'D'
-        i += 1
-    if hours > 0 and i <= 2:
-        f += str(hours) + 'h'
-        i += 1
-    if minutes > 0 and i <= 2:
-        f += str(minutes) + 'm'
-        i += 1
-    if secondsf > 0 and i <= 2:
-        f += str(secondsf) + 's'
-        i += 1
-    if millis > 0 and i <= 2:
-        f += str(millis) + 'ms'
-        i += 1
-    if f == '':
-        f = '0ms'
-    return f
+    for i in range(12):
+        plt.subplot(3, 4, i + 1)
+        plt.tight_layout()
+        plt.imshow(batch_data[i].squeeze(0), cmap='gray')
+        plt.title(batch_label[i].item())
+        plt.xticks([])
+        plt.yticks([])

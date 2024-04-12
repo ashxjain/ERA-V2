@@ -3,51 +3,65 @@ import torch
 from models import *
 from utils import *
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# Function to calculate the number of correct predictions in a batch
+def get_correct_pred_count(pred, target):
+    return pred.argmax(dim=1).eq(target).sum().item()
 
-# Training
-def train(model, trainloader, epoch, optimizer):
-    print('\nEpoch: %d' % epoch)
-    model.train()
+# Function for training the model
+def train(model, device, train_loader, optimizer, criterion, train_losses, train_acc):
+    model.train()  # Set the model to training mode
+    pbar = tqdm(train_loader)  # Create a progress bar
+
     train_loss = 0
     correct = 0
-    total = 0
-    for batch_idx, (inputs, targets) in enumerate(trainloader):
-        inputs, targets = inputs.to(device), targets.to(device)
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+    processed = 0
 
-        train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
+    for batch_idx, (data, target) in enumerate(pbar):
+        data, target = data.to(device), target.to(device)  # Move data to device
+        optimizer.zero_grad()  # Zero the gradients
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        pred = model(data)  # Forward pass
 
+        loss = criterion(pred, target)  # Calculate the loss
+        train_loss += loss.item()  # Accumulate the loss
 
-def test(model, testloader, criterion):
-    model.eval()
+        loss.backward()  # Backpropagation
+        optimizer.step()  # Update weights
+
+        # Calculate accuracy
+        correct += get_correct_pred_count(pred, target)
+        processed += len(data)
+
+        # Update progress bar description
+        pbar.set_description(desc=f'Train: Loss={loss.item():0.4f} Batch_id={batch_idx} Accuracy={100*correct/processed:0.2f}')
+
+    # Save training metrics for plotting
+    train_acc.append(100 * correct / processed)
+    train_losses.append(train_loss / len(train_loader))
+
+# Function for testing the model
+def test(model, device, test_loader, criterion, test_losses, test_acc):
+    model.eval()  # Set the model to evaluation mode
+
     test_loss = 0
     correct = 0
-    total = 0
-    with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(testloader):
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
 
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+    with torch.no_grad():  # Disable gradient calculation
+        for batch_idx, (data, target) in enumerate(test_loader):
+            data, target = data.to(device), target.to(device)  # Move data to device
 
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            output = model(data)  # Forward pass
+            test_loss += criterion(output, target).item()  # Accumulate the loss
 
-    acc = 100.*correct/total
+            # Calculate accuracy
+            correct += get_correct_pred_count(output, target)
 
+    # Calculate average test loss and accuracy
+    test_loss /= len(test_loader.dataset)
+    test_acc.append(100. * correct / len(test_loader.dataset))
+    test_losses.append(test_loss)
 
+    # Print test set performance
+    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
