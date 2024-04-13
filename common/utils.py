@@ -154,7 +154,7 @@ def show_misclassified_images_from_model(model, device, data_loader, class_label
             if count == image_count:
                 return
 
-def show_gradcam_on_misclassified_images_from_model(model, target_layer, data_loader, class_labels, image_count):
+def show_gradcam_on_misclassified_images_from_model(model, device, target_layer, data_loader, class_labels, image_count):
   correct = 0
   figure = plt.figure(figsize=(15,15))
   count = 0
