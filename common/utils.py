@@ -160,23 +160,22 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
   count = 0
   gradcam = GradCAM(model=model, target_layers=[target_layer])
   targets = None
-  with torch.no_grad():
-      for data, target in data_loader:
-          data, target = data.to(device), target.to(device)
-          cam = gradcam(input_tensor=data, targets=targets)
-          output = cam.outputs
-          pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-          correct += pred.eq(target.view_as(pred)).sum().item()
+  for data, target in data_loader:
+      data, target = data.to(device), target.to(device)
+      cam = gradcam(input_tensor=data, targets=targets)
+      output = cam.outputs
+      pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+      correct += pred.eq(target.view_as(pred)).sum().item()
 
-          for idx in range(len(pred)):
-            i_pred, i_act = pred[idx], target[idx]
-            if i_pred != i_act:
-                annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
-                count += 1
-                cam_image = show_cam_on_image(data, cam[idx], use_rgb=True)
-                plt.subplot(5, 2, count)
-                plt.axis('off')
-                imshow(cam_image)
-                plt.annotate(annotation, xy=(0,0), xytext=(0,-1.2), fontsize=13)
-            if count == image_count:
-                return
+      for idx in range(len(pred)):
+        i_pred, i_act = pred[idx], target[idx]
+        if i_pred != i_act:
+            annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
+            count += 1
+            cam_image = show_cam_on_image(data, cam[idx], use_rgb=True)
+            plt.subplot(5, 2, count)
+            plt.axis('off')
+            imshow(cam_image)
+            plt.annotate(annotation, xy=(0,0), xytext=(0,-1.2), fontsize=13)
+        if count == image_count:
+            return
