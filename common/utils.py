@@ -163,7 +163,7 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
   for data, target in data_loader:
       data, target = data.to(device), target.to(device)
       cam = gradcam(input_tensor=data, targets=targets)
-      output = gradcam.outputs
+      output = model(data)
       pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
       correct += pred.eq(target.view_as(pred)).sum().item()
 
@@ -172,7 +172,7 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
         if i_pred != i_act:
             annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
             count += 1
-            cam_image = show_cam_on_image(data, cam[idx], use_rgb=True)
+            cam_image = show_cam_on_image(data[idx], cam[idx], use_rgb=True)
             plt.subplot(5, 2, count)
             plt.axis('off')
             imshow(cam_image)
