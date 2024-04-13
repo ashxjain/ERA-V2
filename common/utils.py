@@ -38,7 +38,7 @@ class CutOut:
         x2 = np.clip(x + self.size // 2, 0, w)
         mask[y1:y2, x1:x2] = 0
         img *= mask[:, :, np.newaxis]
-        return Image.fromarray(img)
+        return torch.from_numpy(img)
 
 def load_transformed_dataset(dataset_name, batch_size):
     if dataset_name == DatasetName.CIFAR10:
