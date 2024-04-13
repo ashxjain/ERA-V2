@@ -159,7 +159,7 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
   figure = plt.figure(figsize=(15,15))
   count = 0
   gradcam = GradCAM(model=model, target_layers=[target_layer])
-  targets = [ClassifierOutputTarget(10)]
+  targets = None
   with torch.no_grad():
       for data, target in data_loader:
           data, target = data.to(device), target.to(device)
