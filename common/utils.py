@@ -47,7 +47,7 @@ def load_transformed_dataset(dataset_name, batch_size):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-            Cutout(16),
+            CutOut(16),
         ])
         
         transform_test = transforms.Compose([
