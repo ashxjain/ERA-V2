@@ -74,7 +74,7 @@ def test(model, device, test_loader, criterion, test_losses, test_acc):
         100. * correct / len(test_loader.dataset)))
 
 
-def train_test_model(num_epochs, train_acc, train_losses, test_acc, test_losses, lr, run_scheduler=False):
+def train_test_model(num_epochs, lr, run_scheduler=False):
     train_losses = []
     test_losses = []
     train_acc = []
