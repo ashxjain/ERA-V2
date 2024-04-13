@@ -159,6 +159,10 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
   figure = plt.figure(figsize=(15,15))
   count = 0
   gradcam = GradCAM(model=model, target_layers=[target_layer])
+  unnormalize = transforms.Compose([
+        transforms.Normalize(mean=[-0.485/0.229, -0.456/0.224, -0.406/0.225], std=[1/0.229, 1/0.224, 1/0.225]),
+        transforms.ToPILImage()
+  ])
   targets = None
   for data, target in data_loader:
       data, target = data.to(device), target.to(device)
@@ -172,7 +176,8 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
         if i_pred != i_act:
             annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
             count += 1
-            cam_image = show_cam_on_image(data[idx], cam[idx], use_rgb=True)
+            unnormalized_image = unnormalize(data[idx])
+            cam_image = show_cam_on_image(unnormalized_image, cam[idx], use_rgb=True)
             plt.subplot(5, 2, count)
             plt.axis('off')
             imshow(cam_image)
