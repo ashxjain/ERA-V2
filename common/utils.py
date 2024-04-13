@@ -8,13 +8,37 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import matplotlib.pyplot as plt
+import numpy as np
+import torchvision.transforms.functional as F
 from torchvision import datasets, transforms
 from enum import Enum
-import matplotlib.pyplot as plt
+from PIL import Image
+
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+from pytorch_grad_cam.utils.image import show_cam_on_image
 
 class DatasetName(Enum):
     CIFAR10 = 1
 
+class CutOut:
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, img):
+        img = np.array(img)
+        h, w = img.shape[:2]
+        mask = np.ones((h, w), np.float32)
+        y = np.random.randint(h)
+        x = np.random.randint(w)
+        y1 = np.clip(y - self.size // 2, 0, h)
+        y2 = np.clip(y + self.size // 2, 0, h)
+        x1 = np.clip(x - self.size // 2, 0, w)
+        x2 = np.clip(x + self.size // 2, 0, w)
+        mask[y1:y2, x1:x2] = 0
+        img *= mask[:, :, np.newaxis]
+        return Image.fromarray(img)
 
 def load_transformed_dataset(dataset_name, batch_size):
     if dataset_name == DatasetName.CIFAR10:
@@ -23,6 +47,7 @@ def load_transformed_dataset(dataset_name, batch_size):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            Cutout(16),
         ])
         
         transform_test = transforms.Compose([
@@ -100,3 +125,58 @@ def plot_sample_data(data_loader):
         plt.title(batch_label[i].item())
         plt.xticks([])
         plt.yticks([])
+
+def imshow(img):
+    img = img / 2 + 0.5 # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+
+def show_misclassified_images_from_model(model, data_loader, class_labels, image_count):
+  correct = 0
+  figure = plt.figure(figsize=(15,15))
+  count = 0
+  with torch.no_grad():
+      for data, target in data_loader:
+          data, target = data.to(device), target.to(device)
+          output = model(data)
+          pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+          correct += pred.eq(target.view_as(pred)).sum().item()
+
+          for idx in range(len(pred)):
+            i_pred, i_act = pred[idx], target[idx]
+            if i_pred != i_act:
+                annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
+                count += 1
+                plt.subplot(5, 2, count)
+                plt.axis('off')
+                imshow(data[idx].cpu())
+                plt.annotate(annotation, xy=(0,0), xytext=(0,-1.2), fontsize=13)
+            if count == image_count:
+                return
+
+def show_gradcam_on_misclassified_images_from_model(model, target_layer, data_loader, class_labels, image_count):
+  correct = 0
+  figure = plt.figure(figsize=(15,15))
+  count = 0
+  gradcam = GradCAM(model=model, target_layers=[target_layer])
+  targets = [ClassifierOutputTarget(281)]
+  with torch.no_grad():
+      for data, target in data_loader:
+          data, target = data.to(device), target.to(device)
+          output = model(data)
+          pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+          correct += pred.eq(target.view_as(pred)).sum().item()
+
+          for idx in range(len(pred)):
+            i_pred, i_act = pred[idx], target[idx]
+            if i_pred != i_act:
+                annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
+                count += 1
+                grayscale_cam = gradcam(input_tensor=data[idx], targets=targets)
+                cam_image = show_cam_on_image(data[idx].cpu(), grayscale_cam, use_rgb=True)
+                plt.subplot(5, 2, count)
+                plt.axis('off')
+                imshow(cam_image)
+                plt.annotate(annotation, xy=(0,0), xytext=(0,-1.2), fontsize=13)
+            if count == image_count:
+                return

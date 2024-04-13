@@ -4,6 +4,12 @@ from tqdm import tqdm  # Import tqdm for progress bars
 from models import *
 from utils import *
 
+class LossFunctionType(Enum):
+    CROSS_ENTROPY_LOSS = 1
+
+class OptimizerType(Enum):
+    SGD = 1
+
 # Function to calculate the number of correct predictions in a batch
 def get_correct_pred_count(pred, target):
     return pred.argmax(dim=1).eq(target).sum().item()
