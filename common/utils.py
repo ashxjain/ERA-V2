@@ -181,7 +181,7 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
             cam_image = show_cam_on_image(unnormalized_image, cam[idx], use_rgb=True)
             plt.subplot(5, 2, count)
             plt.axis('off')
-            imshow(cam_image)
+            plt.imshow(cam_image)
             plt.annotate(annotation, xy=(0,0), xytext=(0,-1.2), fontsize=13)
         if count == image_count:
             return
