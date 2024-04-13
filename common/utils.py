@@ -131,7 +131,7 @@ def imshow(img):
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
-def show_misclassified_images_from_model(model, data_loader, class_labels, image_count):
+def show_misclassified_images_from_model(model, device, data_loader, class_labels, image_count):
   correct = 0
   figure = plt.figure(figsize=(15,15))
   count = 0
