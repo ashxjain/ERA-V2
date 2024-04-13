@@ -5,6 +5,7 @@ import sys
 import time
 import math
 
+import cv2
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torchvision.transforms.functional as F
 from torchvision import datasets, transforms
+from torchvision.utils import make_grid
 from enum import Enum
 from PIL import Image
 
@@ -185,3 +187,48 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
             plt.annotate(annotation, xy=(0,0), xytext=(0,-1.2), fontsize=13)
         if count == image_count:
             return
+
+def run_gradcam_on_misclassified(model, device, target_layer, data_loader, class_labels, image_count=10):
+    model.eval()
+    misclassified_count = 0
+    
+    for data, target in data_loader:
+        data, target = data.to(device), target.to(device)
+        output = model(data)
+        pred = output.argmax(dim=1, keepdim=True)
+        misclassified_mask = pred.eq(target.view_as(pred)) == False
+        
+        for i in range(len(misclassified_mask)):
+            if misclassified_mask[i] and misclassified_count < image_count:
+                misclassified_count += 1
+                image = data[i].cpu().numpy().transpose((1, 2, 0))
+                target_class = target[i].item()
+                
+                cam = GradCAM(model=model, target_layers=[target_layer])
+                grayscale_cam = cam(input_tensor=data[i].unsqueeze(0), targets=None)
+                grayscale_cam = grayscale_cam[0, :]
+                normalized_cam = (grayscale_cam - grayscale_cam.min()) / (grayscale_cam.max() - grayscale_cam.min())
+                heatmap = np.uint8(255 * normalized_cam)
+                
+                original_image = np.uint8(255 * (image - np.min(image)) / np.ptp(image))
+                heatmap = cv2.resize(heatmap, (original_image.shape[1], original_image.shape[0]))
+                cam_image = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+                cam_image = cv2.addWeighted(original_image, 0.7, cam_image, 0.3, 0)
+                
+                plt.figure(figsize=(10, 5))
+                plt.subplot(1, 2, 1)
+                plt.imshow(image)
+                plt.title(f"Original Image - Predicted: {class_labels[pred[i].item()]} - Actual: {class_labels[target[i].item()]}")
+                plt.axis('off')
+                
+                plt.subplot(1, 2, 2)
+                plt.imshow(cam_image)
+                plt.title("Grad-CAM Heatmap")
+                plt.axis('off')
+                
+                plt.show()
+                
+        if misclassified_count >= image_count:
+            break
+
+
