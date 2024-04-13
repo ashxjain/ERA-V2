@@ -76,7 +76,7 @@ def test(model, device, test_loader, criterion, test_losses, test_acc):
         100. * correct / len(test_loader.dataset)))
 
 
-def train_test_model(model, num_epochs, lr, run_scheduler=False):
+def train_test_model(model, device, num_epochs, lr, run_scheduler=False):
     train_losses = []
     test_losses = []
     train_acc = []
@@ -86,7 +86,7 @@ def train_test_model(model, num_epochs, lr, run_scheduler=False):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1,
                           momentum=0.9, weight_decay=5e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
     # Training and testing the model
     for epoch in range(1, num_epochs+1):
