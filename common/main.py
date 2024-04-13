@@ -1,4 +1,6 @@
 import torch
+import torch.optim as optim
+import torch.nn as nn
 from tqdm import tqdm  # Import tqdm for progress bars
 
 from models import *
@@ -74,7 +76,7 @@ def test(model, device, test_loader, criterion, test_losses, test_acc):
         100. * correct / len(test_loader.dataset)))
 
 
-def train_test_model(num_epochs, lr, run_scheduler=False):
+def train_test_model(model, num_epochs, lr, run_scheduler=False):
     train_losses = []
     test_losses = []
     train_acc = []
