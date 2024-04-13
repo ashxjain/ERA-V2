@@ -177,6 +177,7 @@ def show_gradcam_on_misclassified_images_from_model(model, device, target_layer,
             annotation = "Actual: %s, Predicted: %s" % (class_labels[i_act], class_labels[i_pred])
             count += 1
             unnormalized_image = unnormalize(data[idx])
+            unnormalized_image = np.clip(unnormalized_image, 0, 1)  # Clip to range [0, 1]
             cam_image = show_cam_on_image(unnormalized_image, cam[idx], use_rgb=True)
             plt.subplot(5, 2, count)
             plt.axis('off')
